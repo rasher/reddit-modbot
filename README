@@ -1,5 +1,43 @@
-RULES FILES
+ABOUT
+=====
+
+Reddit modbot is a relatively lightweight script for automating reddit
+moderating tasks. It was written as a simpler alternative to AutoModerator
+by Deimos.
+
+ADVANTAGES
+==========
+
+ * Does not require a database or other semi-complicated setup.
+ * Runs continously to avoid startup penalty
+ * Defining rules is fairly simple due to simple rules files format
+ * Will never re-evaluate an item, which saves time
+
+LIMITATIONS
 ===========
+
+ * Built with single-subreddit usage in mind. Though this could likely be fixed
+   without too many changes.
+ * Rules files are not as flexible as AutoModerator rules
+ * All rules are regex, which makes matching numbers slightly convoluted
+ * Will never re-evaluate an item, which means it's not really possible to react
+   to items getting downvoted or reported.
+
+GETTING STARTED
+===============
+
+Requirements (both available in pypi):
+ * inotifyx
+ * PRAW
+
+Run it like this:
+
+modbot.py -r /path/to/rules mysubreddit
+
+Additionally, you may pass in the username and password for your reddit user.
+
+WRITING RULES FILES
+===================
 
 A rules file is a file ending in .rule, placed in the rules dir.
 
@@ -66,7 +104,7 @@ RULE EXAMPLES
 > 
 > ***
 > 
-> I am an automated bot - please [contact the mods](http://www.reddit.com/message/compose?to=%2Fr%2Fnfl) if you believe I made a mistake.
+> I am an automated bot - please [contact the mods](http://www.reddit.com/message/compose?to=%2Fr%2Fmysubreddit) if you believe I made a mistake.
 
 This rules matches any post submitted from a number of meme sites and posts a
 comment in the thread, as well as marks the submission as spam to train the spam
