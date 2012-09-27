@@ -1,0 +1,93 @@
+RULES FILES
+===========
+
+A rules file is a file ending in .rule, placed in the rules dir.
+
+For every item the bot inspects, it will try to match it against each rule,
+in order by filename of each rule. If a rule matches, no further rules will be
+applied.
+
+A rules file contains any number of line of the form "Key: value". After these
+lines, you may include a rule body, which should be preceded by a blank line.
+The purpose of this will be described later.
+
+The value of a rule is a regular expression that will be applied to the given
+value of the item in question (case-insensitively).
+
+Rule lines in the header of the rule, starting with a # character are ignored.
+
+The order of rule lines is ignored.
+
+The header lines describe what conditions the comment or post much fullfil to
+match the rule - or which actions to take. Possible conditions are:
+
+Field           Description
+--------------------------------------------------------------------
+Username        name of the author
+Numreports      number of reports (this is not too useful currently)
+Domain          domain of the post
+Title           title of post
+Upvotes         number of upvotes
+Downvotes       number of downvotes
+Score           upvotes-downvotes
+Type            'comment' or 'submission'
+Body            content of comment or self-post
+Bodylength      length of body
+Dayhour         time of submission on the form Tue-19 in UTC
+
+In addition to any number of these, you should include a line named "Actions",
+with the value being a comma seperated list of actions to take when the rule
+matches. Possible actions are:
+
+Action
+--------
+upvote          upvote the item
+log             write an entry to the rulelogger logging logger
+spam            mark the item as spam
+remove          remove the item (but don't mark as spam)
+approve         approve the item
+respond         post a distinguished comment, using the body of the rule as a
+                template, using new style python string formatting with the
+                objects "rule" and "thing" available. See below for an example.
+messagemods     message the mods of the subreddit, using the rule body.
+beep            write a BEL character to the terminal
+messageauthor   message the author, using the rule body as template.
+report          report the item
+none            do nothing
+linkflair:flair set the linkflair "flair" on the item
+
+RULE EXAMPLES
+=============
+
+> Domain: (quickmeme.com|qkme.me|memegenerator.net|weknowmemes.com)
+> Actions: log,spam,respond
+> 
+> Please do not submit memes to this subreddit.
+> 
+> ***
+> 
+> I am an automated bot - please [contact the mods](http://www.reddit.com/message/compose?to=%2Fr%2Fnfl) if you believe I made a mistake.
+
+This rules matches any post submitted from a number of meme sites and posts a
+comment in the thread, as well as marks the submission as spam to train the spam
+filter.
+
+> Type: comment
+> Body: digg
+> Actions: log,messagemods
+> Description: Burn the witch!
+> Subject: Someone mentioned digg
+> 
+> User /u/{thing.author.name} in [this comment]({thing.permalink}?context=3) (thread *{thing.submission.title}*)
+> 
+> ***
+> 
+> {thing.body}
+
+This rule will match any comment including the word "digg" and alert the mods.
+Note the use of Python string formatting to include the object's content and a
+permalink. "thing" is either a Comment or Submission object as defined by the
+praw library (<https://github.com/praw-dev/praw>).
+
+The "Description" line is not used, but simply there as a human-readable
+explanation.
