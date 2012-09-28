@@ -36,10 +36,12 @@ import modbot
 import praw
 import sys
 
+
 def myperformaction(thing, action, rule):
     logging.info("Would perform action: %s" % action)
 
 modbot.performaction = myperformaction
+
 
 def testrule(rule, thing):
     rh = RuleHandler('/tmp', '__NO_MATCHES__')

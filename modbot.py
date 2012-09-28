@@ -48,6 +48,7 @@ VERSION = 0.1
 SEEN = set()
 SEENFILE = 'seen.list'
 
+
 def performaction(thing, action, rule):
     origaction = action.strip()
     action = action.strip().lower()
@@ -58,7 +59,8 @@ def performaction(thing, action, rule):
     if action in ('respond', 'messagemods', 'messageauthor'):
         subject = "Modbot rule matched"
         text = """
-The following post/comment by /u/{thing.author.comment} matched the rule {rule._filename}: {thing.permalink}
+The following post/comment by /u/{thing.author.comment} matched the rule
+{rule._filename}: {thing.permalink}
 """.strip()
         if 'content' in rule:
             text = rule['content'].format(thing=thing, rule=rule)
@@ -104,6 +106,7 @@ The following post/comment by /u/{thing.author.comment} matched the rule {rule._
         logging.warning("Unknown action: %s from %s" % (action,
             rule['_filename']))
 
+
 def applyrule(thing, rule):
     if 'action' in rule:
         for action in rule['action'].split(','):
@@ -111,6 +114,7 @@ def applyrule(thing, rule):
     if 'actions' in rule:
         for action in rule['actions'].split(','):
             performaction(thing, action, rule)
+
 
 def matchrules(thing, rules):
     if thing.name in SEEN:
@@ -127,14 +131,13 @@ def matchrules(thing, rules):
                 lambda(t): 'comment' if isinstance(t, Comment) else
                 'submission'),
             'body': (None,
-                lambda(t): t.body if isinstance(t, Comment) else t.selftext
-                ),
+                lambda(t): t.body if isinstance(t, Comment) else t.selftext),
             'bodylength': (None,
-                lambda(t): len(t.body) if isinstance(t, Comment) else len(t.selftext)
-                ),
+                lambda(t): len(t.body) if isinstance(t, Comment) else
+                len(t.selftext)),
             'dayhour': (None,
-                lambda(t): datetime.fromtimestamp(t.timestamp).strftime("%a-%H")
-                ),
+                lambda(t):
+                    datetime.fromtimestamp(t.timestamp).strftime("%a-%H")),
             }
 
     for rule in rules:
@@ -147,7 +150,8 @@ def matchrules(thing, rules):
             if kind != None and not isinstance(thing, kind):
                 ruleMatches = False
                 break
-            logging.debug("Match %s %s %s" % (thing.name, key, unicode(getter(thing))))
+            logging.debug("Match %s %s %s" % (thing.name, key,
+                unicode(getter(thing))))
             m = re.search(value, unicode(getter(thing)), flags=re.IGNORECASE)
             if not m:
                 ruleMatches = False
@@ -163,19 +167,18 @@ def matchrules(thing, rules):
     seen(thing.name)
     return False
 
+
 def seen(thing_id):
     SEEN.add(thing_id)
     f = open(SEENFILE, 'a')
     f.write("%s,%d\n" % (thing_id, int(datetime.utcnow().strftime("%s"))))
     f.close()
 
+
 def read_seen():
     if os.path.exists(SEENFILE):
         for line in open(SEENFILE):
             SEEN.add(line.strip().split(",")[0])
-
-def usage():
-    pass
 
 
 def main():
@@ -189,7 +192,7 @@ def main():
     args = parser.parse_args()
 
     rh = RuleHandler(args.rulesdir, '*.rule')
-    
+
     logging.config.fileConfig('logging.conf')
 
     reddit = Reddit('%s/%s' % (NAME, VERSION))
@@ -212,7 +215,8 @@ def main():
             if comments_ph == None:
                 comments = sub.get_comments(limit=10)
             else:
-                comments = sub.get_comments(place_holder=comments_ph, limit=100)
+                comments = sub.get_comments(place_holder=comments_ph,
+                        limit=100)
         except Exception, e:
             comments = []
 
@@ -255,6 +259,7 @@ def main():
         logging.info("Checked %d modqueue items" % num)
 
         time.sleep(30)
+
 
 if __name__ == "__main__":
     main()

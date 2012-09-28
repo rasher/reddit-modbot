@@ -35,6 +35,7 @@ import codecs
 import inotifyx
 import logging
 
+
 class RuleHandler(object):
     _rules = {}
     _rules_list = []
@@ -42,7 +43,7 @@ class RuleHandler(object):
     _removedfiles = []
     _wd = None
     fnmask = ''
-    
+
     READ_RULE = inotifyx.IN_CREATE | inotifyx.IN_MODIFY | inotifyx.IN_MOVED_TO
     REMOVE_RULE = inotifyx.IN_DELETE | inotifyx.IN_MOVED_FROM
 
@@ -67,7 +68,8 @@ class RuleHandler(object):
         if self._wd != None:
             del(self.directory)
         self._directory = value
-        self._wd = inotifyx.add_watch(self._fd, self._directory, self.READ_RULE|self.REMOVE_RULE)
+        self._wd = inotifyx.add_watch(self._fd, self._directory, self.READ_RULE
+                | self.REMOVE_RULE)
 
     @directory.deleter
     def directory(self):
@@ -141,7 +143,8 @@ class RuleHandler(object):
 
 if __name__ == "__main__":
     import time
-    logging.basicConfig(level=logging.DEBUG, format="[%(asctime)s] %(levelname)-7s %(message)s")
+    logging.basicConfig(level=logging.DEBUG,
+            format="[%(asctime)s] %(levelname)-7s %(message)s")
     rh = RuleHandler('./test', '*.rule')
     while True:
         logging.debug("Loop start")
