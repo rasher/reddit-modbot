@@ -75,7 +75,7 @@ matches. Possible actions are:
 <tr><td>spam</td><td>mark the item as spam</td></tr>
 <tr><td>remove</td><td>remove the item (but don't mark as spam)</td></tr>
 <tr><td>approve</td><td>approve the item</td></tr>
-<tr><td>respond</td><td>post a distinguished comment, using the body of the rule as a template, using new style python string formatting with the objects "rule" and "thing" available. See below for an example.</td></tr>
+<tr><td>respond</td><td>post a distinguished comment, using the body of the rule as a template, using new style python string formatting with the objects "rule", "thing" and "matches"available. See below for an example.</td></tr>
 <tr><td>messagemods</td><td>message the mods of the subreddit, using the rule body.</td></tr>
 <tr><td>beep</td><td>write a BEL character to the terminal</td></tr>
 <tr><td>messageauthor</td><td>message the author, using the rule body as template.</td></tr>
@@ -85,6 +85,8 @@ matches. Possible actions are:
 </table>
 
 ## Rule examples
+
+### Simple example
 
 ```
 Domain: (quickmeme.com|qkme.me|memegenerator.net|weknowmemes.com)
@@ -98,6 +100,8 @@ I am an automated bot - please [contact the mods](http://www.reddit.com/message/
 ```
 
 This rules matches any post submitted from a number of meme sites and posts a comment in the thread, as well as marks the submission as spam to train the spam filter.
+
+### Message formatting
 
 ```
 Type: comment
@@ -116,3 +120,16 @@ User /u/{thing.author.name} in [this comment]({thing.permalink}?context=3) (thre
 This rule will match any comment including the word "digg" and alert the mods. Note the use of Python string formatting to include the object's content and a permalink. "thing" is either a Comment or Submission object as defined by the praw library (<https://github.com/praw-dev/praw>).
 
 The "Description" line is not used, but simply there as a human-readable explanation.
+
+### Using matches in messages
+
+```
+Type: comment
+Body: (Batman|Bruce Wayne|Dark Knight)
+Actions: log,messagemods
+Subject: Someone talking about batman
+
+A user mentioned batman in [this comment]({thing.permalink}), using {matches[body][full]} to refer to him.
+```
+
+This rule uses the matches dict, which includes a key for each matching rule. For each rule, it includes a key named "full", containing the entire match, plus a key for each named group the regex contains (in this case none).
