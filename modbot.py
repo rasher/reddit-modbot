@@ -49,7 +49,7 @@ SEEN = set()
 SEENFILE = 'seen.list'
 
 
-def performaction(thing, action, rule):
+def performaction(thing, action, rule, matches):
     origaction = action.strip()
     action = action.strip().lower()
     logging.info("Perform %s on %s from %s" % (action, thing.permalink,
@@ -63,7 +63,8 @@ The following post/comment by /u/{thing.author.comment} matched the rule
 {rule._filename}: {thing.permalink}
 """.strip()
         if 'content' in rule:
-            text = rule['content'].format(thing=thing, rule=rule)
+            text = rule['content'].format(thing=thing, rule=rule,
+                    matches=matches)
         if 'subject' in rule:
             subject = rule['subject']
 
@@ -107,13 +108,13 @@ The following post/comment by /u/{thing.author.comment} matched the rule
             rule['_filename']))
 
 
-def applyrule(thing, rule):
+def applyrule(thing, rule, matches):
     if 'action' in rule:
         for action in rule['action'].split(','):
-            performaction(thing, action, rule)
+            performaction(thing, action, rule, matches)
     if 'actions' in rule:
         for action in rule['actions'].split(','):
-            performaction(thing, action, rule)
+            performaction(thing, action, rule, matches)
 
 
 def matchrules(thing, rules):
@@ -143,6 +144,7 @@ def matchrules(thing, rules):
     for rule in rules:
         logging.debug("Match %s against %s" % (thing.name, rule['_filename']))
         ruleMatches = True
+        matches = {}
         for key, value in rule.iteritems():
             if key not in rulekey:
                 continue
@@ -152,13 +154,16 @@ def matchrules(thing, rules):
                 break
             logging.debug("Match %s %s %s" % (thing.name, key,
                 unicode(getter(thing))))
-            m = re.search(value, unicode(getter(thing)), flags=re.IGNORECASE)
+            regex = '(?P<full>%s)' % value
+            m = re.search(regex, unicode(getter(thing)), flags=re.IGNORECASE)
             if not m:
                 ruleMatches = False
                 break
+            else:
+                matches[key] = m.groupdict()
         if ruleMatches:
             try:
-                applyrule(thing, rule)
+                applyrule(thing, rule, matches)
                 seen(thing.name)
                 return True
             except Exception, e:

@@ -37,7 +37,7 @@ import praw
 import sys
 
 
-def myperformaction(thing, action, rule):
+def myperformaction(thing, action, rule, matches):
     logging.info("Would perform action: %s" % action)
 
 modbot.performaction = myperformaction
