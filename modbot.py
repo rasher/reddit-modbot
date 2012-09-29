@@ -58,15 +58,19 @@ def performaction(thing, action, rule, matches):
     # Compose message. All these are made the same way
     if action in ('respond', 'messagemods', 'messageauthor'):
         subject = "Modbot rule matched"
-        text = """
+        try:
+            if 'subject' in rule:
+                subject = rule['subject']
+            text = rule['content'].format(thing=thing, rule=rule,
+                    matches=matches)
+        except Exception:
+            # We'll just use a default message then
+            text = """
 The following post/comment by /u/{thing.author.comment} matched the rule
 {rule._filename}: {thing.permalink}
 """.strip()
-        if 'content' in rule:
-            text = rule['content'].format(thing=thing, rule=rule,
-                    matches=matches)
-        if 'subject' in rule:
-            subject = rule['subject']
+            text = text.format(thing=thing, rule=rule, matches=matches)
+            pass
 
     if action == 'upvote':
         thing.upvote()
