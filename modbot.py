@@ -46,8 +46,10 @@ NAME = "ModBot"
 VERSION = 0.1
 
 SEEN = set()
-SEENFILE = 'seen.list'
+SEEN_FILE = 'seen.list'
 
+MODQUEUE_ACTED = set()
+MODQUEUE_ACTED_FILE = 'modqueue_acted.list'
 
 def performaction(thing, action, rule, matches):
     origaction = action.strip()
@@ -121,8 +123,11 @@ def applyrule(thing, rule, matches):
             performaction(thing, action, rule, matches)
 
 
-def matchrules(thing, rules):
-    if thing.name in SEEN:
+def matchrules(thing, rules, is_modqueue=False):
+    print "%s" % is_modqueue
+    if thing.name in SEEN and not is_modqueue:
+        return False
+    if thing.name in MODQUEUE_ACTED and is_modqueue:
         return False
     rulekey = {
             'username': (None, lambda(t): t.author.name),
@@ -169,6 +174,8 @@ def matchrules(thing, rules):
             try:
                 applyrule(thing, rule, matches)
                 seen(thing.name)
+                if is_modqueue:
+                    modqueue_acted(thing.name)
                 return True
             except Exception, e:
                 logging.error(str(e))
@@ -177,17 +184,31 @@ def matchrules(thing, rules):
     return False
 
 
+def modqueue_acted(thing_id):
+    remember_thing(MODQUEUE_ACTED, MODQUEUE_ACTED_FILE, thing_id)
+
+
 def seen(thing_id):
-    SEEN.add(thing_id)
-    f = open(SEENFILE, 'a')
+    remember_thing(SEEN, SEEN_FILE, thing_id)
+
+
+def remember_thing(idset, filename, thing_id):
+    if thing_id in idset:
+        return
+    idset.add(thing_id)
+    f = open(filename, 'a')
     f.write("%s,%d\n" % (thing_id, int(datetime.utcnow().strftime("%s"))))
     f.close()
 
 
-def read_seen():
-    if os.path.exists(SEENFILE):
-        for line in open(SEENFILE):
+def read_thinglists():
+    if os.path.exists(SEEN_FILE):
+        for line in open(SEEN_FILE):
             SEEN.add(line.strip().split(",")[0])
+    if os.path.exists(MODQUEUE_ACTED_FILE):
+        for line in open(MODQUEUE_ACTED_FILE):
+            MODQUEUE_ACTED.add(line.strip().split(",")[0])
+
 
 
 def main():
@@ -212,13 +233,24 @@ def main():
         sys.exit(1)
 
     sub = reddit.get_subreddit(args.subreddit)
-    read_seen()
+    read_thinglists()
     comments_ph = None
     submissions_ph = None
 
     while True:
         logging.info("Loop start")
         rh.update()
+        
+        try:
+            modqueue_items = sub.get_modqueue(limit=100)
+        except Exception, e:
+            modqueue_items = []
+
+        num = 0
+        for modqueue_item in modqueue_items:
+            num += 1
+            matchrules(modqueue_item, rh.rules, is_modqueue=True)
+        logging.info("Checked %d modqueue items" % num)
 
         try:
             if comments_ph == None:
@@ -256,17 +288,7 @@ def main():
             matchrules(submission, rh.rules)
         logging.info("Checked %d submissions" % num)
 
-        try:
-            modqueue_items = sub.get_modqueue(limit=100)
-        except Exception, e:
-            modqueue_items = []
-
-        num = 0
-        for modqueue_item in modqueue_items:
-            num += 1
-            matchrules(modqueue_item, rh.rules)
-        logging.info("Checked %d modqueue items" % num)
-
+        sys.exit(0)
         time.sleep(30)
 
 
