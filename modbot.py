@@ -31,8 +31,9 @@
 from datetime import datetime
 from pprint import pprint
 from praw import Reddit
-from praw.objects import Submission, Comment
+from praw.objects import Submission, Comment, Redditor
 from rules import RuleHandler
+from decorators import RequiresType
 import argparse
 import logging
 import logging.config
@@ -50,6 +51,7 @@ SEEN_FILE = 'seen.list'
 
 MODQUEUE_ACTED = set()
 MODQUEUE_ACTED_FILE = 'modqueue_acted.list'
+
 
 def performaction(thing, action, rule, matches):
     origaction = action.strip()
@@ -123,48 +125,84 @@ def applyrule(thing, rule, matches):
             performaction(thing, action, rule, matches)
 
 
+class ValueGetter:
+    """
+    Simplify getting a value from a thing, using a common name for different
+    types of things, regardless of how the value is retrieved.
+    """
+    @RequiresType(Submission, Comment, Redditor, position=2)
+    def username(self, thing):
+        if not isinstance(thing, Redditor):
+            thing = thing.author
+        return thing.name
+
+    @RequiresType(Submission, Comment, position=2)
+    def numreports(self, thing):
+        return thing.num_reports
+
+    @RequiresType(Submission, position=2)
+    def domain(self, thing):
+        return thing.domain
+
+    @RequiresType(Submission, position=2)
+    def title(self, thing):
+        return thing.title
+
+    @RequiresType(Submission, Comment, position=2)
+    def upvotes(self, thing):
+        return thing.ups
+
+    @RequiresType(Submission, Comment, position=2)
+    def downvotes(self, thing):
+        return thing.downs
+
+    @RequiresType(Submission, Comment, position=2)
+    def score(self, thing):
+        return thing.score
+
+    def type(self, thing):
+        return type(thing).__name__.lower()
+
+    @RequiresType(Submission, Comment, position=2)
+    def body(self, thing):
+        if isinstance(thing, Comment):
+            return t.body
+        else:
+            return t.selftext
+
+    def bodylength(self, thing):
+        return len(self.body(thing))
+
+    @RequiresType(Submission, Comment, position=2)
+    def dayhour(self, thing):
+        return datetime.fromtimestamp(thing.timestamp).strftime("%a-%H")
+
+
 def matchrules(thing, rules, is_modqueue=False):
-    print "%s" % is_modqueue
     if thing.name in SEEN and not is_modqueue:
         return False
     if thing.name in MODQUEUE_ACTED and is_modqueue:
         return False
-    rulekey = {
-            'username': (None, lambda(t): t.author.name),
-            'numreports': (None, lambda(t): t.num_reports),
-            'domain': (Submission, lambda(t): t.domain),
-            'title': (Submission, lambda(t): t.title),
-            'upvotes': (None, lambda(t): t.ups),
-            'downvotes': (None, lambda(t): t.downs),
-            'score': (None, lambda(t): t.score),
-            'type': (None,
-                lambda(t): 'comment' if isinstance(t, Comment) else
-                'submission'),
-            'body': (None,
-                lambda(t): t.body if isinstance(t, Comment) else t.selftext),
-            'bodylength': (None,
-                lambda(t): len(t.body) if isinstance(t, Comment) else
-                len(t.selftext)),
-            'dayhour': (None,
-                lambda(t):
-                    datetime.fromtimestamp(t.timestamp).strftime("%a-%H")),
-            }
 
+    vg = ValueGetter()
     for rule in rules:
         logging.debug("Match %s against %s" % (thing.name, rule['_filename']))
         ruleMatches = True
         matches = {}
+        # Ideally we should loop through these in a more clever order
+        # e.g. check the type value before checking more expensive ones
         for key, value in rule.iteritems():
-            if key not in rulekey:
+            try:
+                fieldvalue = unicode(getattr(vg, key)(thing))
+            except AttributeError:
                 continue
-            kind, getter = rulekey[key]
-            if kind != None and not isinstance(thing, kind):
+            except TypeError:
                 ruleMatches = False
                 break
-            logging.debug("Match %s %s %s" % (thing.name, key,
-                unicode(getter(thing))))
+
+            logging.debug("Match %s %s %s" % (thing.name, key, fieldvalue))
             regex = '(?P<full>%s)' % value
-            m = re.search(regex, unicode(getter(thing)), flags=re.IGNORECASE)
+            m = re.search(regex, fieldvalue, flags=re.IGNORECASE)
             if not m:
                 ruleMatches = False
                 break
@@ -210,7 +248,6 @@ def read_thinglists():
             MODQUEUE_ACTED.add(line.strip().split(",")[0])
 
 
-
 def main():
     parser = argparse.ArgumentParser(
             prog='modbot.py',
@@ -240,7 +277,7 @@ def main():
     while True:
         logging.info("Loop start")
         rh.update()
-        
+
         try:
             modqueue_items = sub.get_modqueue(limit=100)
         except Exception, e:
