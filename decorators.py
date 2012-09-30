@@ -11,15 +11,15 @@ class RequiresType(object):
     def __init__(self, *types, **kwargs):
         self.types = types
         self.position = 0
-        self.returnvalue = False
         if 'position' in kwargs:
             self.position = int(kwargs['position']) - 1
-        if 'returnvalue' in kwargs:
-            self.returnvalue = kwargs['returnvalue']
 
     def __call__(self, f):
         def wrapped_f(*args, **kwargs):
             if type(args[self.position]) not in self.types:
-                return self.returnvalue
+                raise TypeError("Invalid argument type '%s' at position %d. " + 
+                        "Expected one of (%s)" % (
+                            type(args[self.position]).__name__, self.position,
+                            ", ".join([t.__name__ for t in self.types])))
             return f(*args, **kwargs)
         return wrapped_f
