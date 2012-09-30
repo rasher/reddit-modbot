@@ -4,3 +4,4 @@
  * Apply a filters to User objects (to catch offensive usernames etc)
  * Ability to check author status (user, moderator, shadowbanned)
  * Ability to negate checks easily
+ * Make more things configurable (easily)
