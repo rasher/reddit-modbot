@@ -170,9 +170,9 @@ class ValueGetter:
     @RequiresType(Submission, Comment, position=2)
     def body(self, thing):
         if isinstance(thing, Comment):
-            return t.body
+            return thing.body
         else:
-            return t.selftext
+            return thing.selftext
 
     @RequiresType(Submission, Comment, position=2)
     def bodylength(self, thing):
