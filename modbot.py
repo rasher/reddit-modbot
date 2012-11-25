@@ -170,12 +170,13 @@ class ValueGetter:
         else:
             return t.selftext
 
+    @RequiresType(Submission, Comment, position=2)
     def bodylength(self, thing):
         return len(self.body(thing))
 
     @RequiresType(Submission, Comment, position=2)
     def dayhour(self, thing):
-        return datetime.fromtimestamp(thing.timestamp).strftime("%a-%H")
+        return datetime.fromtimestamp(thing.created_utc).strftime("%a-%H")
 
 
 def matchrules(thing, rules, is_modqueue=False):
