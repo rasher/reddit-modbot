@@ -148,6 +148,10 @@ class ValueGetter:
     def title(self, thing):
         return thing.title
 
+    @RequiresType(Submission, position=2)
+    def url(self, thing):
+        return thing.url
+
     @RequiresType(Submission, Comment, position=2)
     def upvotes(self, thing):
         return thing.ups
@@ -193,6 +197,8 @@ def matchrules(thing, rules, is_modqueue=False):
         # Ideally we should loop through these in a more clever order
         # e.g. check the type value before checking more expensive ones
         for key, value in rule.iteritems():
+            if key in ('actions', '_filename'):
+                continue
             try:
                 fieldvalue = unicode(getattr(vg, key)(thing))
             except AttributeError:
