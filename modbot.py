@@ -332,7 +332,6 @@ def main():
             matchrules(submission, rh.rules)
         logging.info("Checked %d submissions" % num)
 
-        sys.exit(0)
         time.sleep(30)
 
 
