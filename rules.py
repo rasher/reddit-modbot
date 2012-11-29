@@ -83,6 +83,7 @@ class RuleHandler(object):
         self._rules_list = []
         for key in keys:
             self._rules_list.append(self._rules[key])
+        self._rules_list.sort(lambda a,b: cmp(a['_filename'], b['_filename']))
 
     def _read_all(self):
         for filename in glob(path.join(self.directory, self.fnmask)):
@@ -142,12 +143,11 @@ class RuleHandler(object):
 
 
 if __name__ == "__main__":
+    from pprint import pprint
+    import sys
     import time
     logging.basicConfig(level=logging.DEBUG,
             format="[%(asctime)s] %(levelname)-7s %(message)s")
-    rh = RuleHandler('./test', '*.rule')
-    while True:
-        logging.debug("Loop start")
-        rh.update()
-        pprint(rules.rules)
-        time.sleep(10)
+    rh = RuleHandler(sys.argv[1])
+    rh.update()
+    pprint(rh.rules)
