@@ -62,7 +62,7 @@ if __name__ == "__main__":
     logging.info("Started, getting thing")
 
     if args.comment:
-        thing = r.request_json(args.url)[1]['data']['children'][0]
+        thing = r.request_json(args.url)[2]['data']['children'][0]
     else:
         thing = r.get_submission(args.url)
     logging.info("Match against rule")
