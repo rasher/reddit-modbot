@@ -190,6 +190,12 @@ class ValueGetter:
         now = datetime.utcnow()
         return (now - created).days
 
+    @RequiresType(Submission, Comment, Redditor, position=2)
+    def userkarma(self, thing):
+        if not isinstance(thing, Redditor):
+            thing = thing.author
+        return thing.link_karma + thing.comment_karma
+
 
 def matchrules(thing, rules, is_modqueue=False):
     if thing.name in SEEN and not is_modqueue:

@@ -60,6 +60,7 @@ The header lines describe what conditions the comment or post much fullfil to ma
     <tr><td>Bodylength</td><td>length of body</td></tr>
     <tr><td>Dayhour</td><td>time of submission on the form Tue-19 in UTC</td></tr>
     <tr><td>Userage</td><td>Age of author account in days</td></tr>
+    <tr><td>Userkarma</td><td>Combined karma of the author account</td></tr>
 </table>
 
 In addition to any number of these, you should include a line named "Actions",
