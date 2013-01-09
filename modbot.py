@@ -199,8 +199,15 @@ def matchrules(thing, rules, is_modqueue=False):
         for key, value in rule.iteritems():
             if key in ('actions', '_filename'):
                 continue
+
+            # Allow to make negative matches by prefixing with "!"
+            invert = key[0] == "!"
+
             try:
-                fieldvalue = unicode(getattr(vg, key)(thing))
+                if invert:
+                    fieldvalue = unicode(getattr(vg, key[1:])(thing))
+                else:
+                    fieldvalue = unicode(getattr(vg, key)(thing))
             except AttributeError:
                 continue
             except TypeError:
@@ -210,10 +217,11 @@ def matchrules(thing, rules, is_modqueue=False):
             logging.debug("Match %s %s %s" % (thing.name, key, fieldvalue))
             regex = '(?P<full>%s)' % value
             m = re.search(regex, fieldvalue, flags=re.IGNORECASE)
-            if not m:
+
+            if (not m and not invert) or (m and invert):
                 ruleMatches = False
                 break
-            else:
+            elif m:
                 matches[key] = m.groupdict()
         if ruleMatches:
             try:
