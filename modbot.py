@@ -182,6 +182,14 @@ class ValueGetter:
     def dayhour(self, thing):
         return datetime.fromtimestamp(thing.created_utc).strftime("%a-%H")
 
+    @RequiresType(Submission, Comment, Redditor, position=2)
+    def userage(self, thing):
+        if not isinstance(thing, Redditor):
+            thing = thing.author
+        created = datetime.utcfromtimestamp(thing.created_utc)
+        now = datetime.utcnow()
+        return (now - created).days
+
 
 def matchrules(thing, rules, is_modqueue=False):
     if thing.name in SEEN and not is_modqueue:
