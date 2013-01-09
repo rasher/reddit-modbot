@@ -323,7 +323,7 @@ def main():
                 comments = sub.get_comments(limit=10)
             else:
                 comments = sub.get_comments(place_holder=comments_ph,
-                        limit=100)
+                        limit=500)
         except Exception, e:
             comments = []
 
