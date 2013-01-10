@@ -197,6 +197,23 @@ class ValueGetter:
         return thing.link_karma + thing.comment_karma
 
 
+def rulesorter(a, b):
+    """Compares two rules for sorting, sorting simple lookups before ones
+    which require additional hits to the reddit api"""
+    order = ['type','body','bodylength','dayhour','domain','downvotes',
+            'numreports','score','title','upvotes','url','username',
+            'userkarma','userage']
+    a = a[0]
+    b = b[0]
+    if a in order and b in order:
+        return cmp(order.index(a), order.index(b))
+    elif not a in order:
+        return -1
+    elif not b in order:
+        return 1
+    else:
+        return 0
+
 def matchrules(thing, rules, is_modqueue=False):
     if thing.name in SEEN and not is_modqueue:
         return False
@@ -208,9 +225,7 @@ def matchrules(thing, rules, is_modqueue=False):
         logging.debug("Match %s against %s" % (thing.name, rule['_filename']))
         ruleMatches = True
         matches = {}
-        # Ideally we should loop through these in a more clever order
-        # e.g. check the type value before checking more expensive ones
-        for key, value in rule.iteritems():
+        for key, value in sorted(rule.iteritems(), rulesorter):
             if key in ('actions', '_filename'):
                 continue
 
