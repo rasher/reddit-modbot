@@ -41,7 +41,7 @@ The value of a rule is a regular expression that will be applied to the given va
 
 Rule lines in the header of the rule, starting with a # character are ignored. The order of rule lines is ignored.
 
-The header lines describe what conditions the comment or post much fullfil to match the rule - or which actions to take. Possible conditions are:
+The header lines describe what conditions the comment or post much fullfil to match the rule - or which actions to take. All of these can be negated by adding a ! in front of the field name. In that case, the rule will only match if that condition doesn't. Possible conditions are:
 
 <table>
     <tr>
