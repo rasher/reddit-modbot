@@ -70,7 +70,7 @@ def performaction(thing, action, rule, matches):
         except Exception:
             # We'll just use a default message then
             text = """
-The following post/comment by /u/{thing.author.comment} matched the rule
+The following post/comment by /u/{thing.author.name} matched the rule
 {rule._filename}: {thing.permalink}
 """.strip()
             text = text.format(thing=thing, rule=rule, matches=matches)
