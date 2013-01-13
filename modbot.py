@@ -319,7 +319,7 @@ def main():
     submissions_ph = None
 
     while True:
-        logging.info("Loop start")
+        logging.debug("Loop start")
         rh.update()
 
         try:
@@ -331,7 +331,7 @@ def main():
         for modqueue_item in modqueue_items:
             num += 1
             matchrules(modqueue_item, rh.rules, is_modqueue=True)
-        logging.info("Checked %d modqueue items" % num)
+        logging.debug("Checked %d modqueue items" % num)
 
         try:
             if comments_ph == None:
@@ -350,7 +350,7 @@ def main():
                 comments_ph = comment.id
             matchrules(comment, rh.rules)
             logging.debug("Checking %s done" % comment.name)
-        logging.info("Checked %d comments" % num)
+        logging.debug("Checked %d comments" % num)
 
         try:
             if submissions_ph == None:
@@ -367,8 +367,9 @@ def main():
             if submissions_ph == None or num == 1:
                 submissions_ph = submission.id
             matchrules(submission, rh.rules)
-        logging.info("Checked %d submissions" % num)
+        logging.debug("Checked %d submissions" % num)
 
+        logging.debug("Loop end")
         time.sleep(30)
 
 
