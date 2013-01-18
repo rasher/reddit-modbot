@@ -203,8 +203,8 @@ def rulesorter(a, b):
     order = ['type','body','bodylength','dayhour','domain','downvotes',
             'numreports','score','title','upvotes','url','username',
             'userkarma','userage']
-    a = a[0]
-    b = b[0]
+    a = a[0].replace('!', '').lower()
+    b = b[0].replace('!', '').lower()
     if a in order and b in order:
         return cmp(order.index(a), order.index(b))
     elif not a in order:
