@@ -60,11 +60,11 @@ def performaction(thing, action, rule, matches):
         rule['_filename']))
 
     # Compose message. All these are made the same way
-    if action in ('respond', 'messagemods', 'messageauthor'):
+    if action in ('respond', 'messagemods', 'messageauthor') or action.startswith('messagemods'):
         subject = "Modbot rule matched"
         try:
             if 'subject' in rule:
-                subject = rule['subject']
+                subject = rule['subject'].format(thing=thing, rule=rule, matches=matches)
             text = rule['content'].format(thing=thing, rule=rule,
                     matches=matches)
         except Exception:
@@ -93,8 +93,13 @@ The following post/comment by /u/{thing.author.name} matched the rule
         else:
             comment = thing.reply(text)
         comment.distinguish()
-    elif action == 'messagemods':
-        thing.subreddit.send_message(subject, text)
+    elif action.startswith('messagemods'):
+        if ':' in action:
+            sub = origaction.split(':', 1)[1]
+            target = thing.reddit_session.get_subreddit(sub)
+        else:
+            target = thing.subreddit
+        target.send_message(subject, text)
     elif action in ('beep', 'bell'):
         sys.stdout.write("\x07")
     elif action == 'messageauthor':
@@ -197,6 +202,17 @@ class ValueGetter:
         return thing.link_karma + thing.comment_karma
 
 
+def decorate(thing):
+    if isinstance(thing, Redditor):
+        created = datetime.utcfromtimestamp(thing.created_utc)
+        now = datetime.utcnow()
+        thing.age = (now - created).days
+    elif isinstance(thing, Comment):
+        decorate(thing.author)
+    elif isinstance(thing, Submission):
+        decorate(thing.author)
+
+
 def rulesorter(a, b):
     """Compares two rules for sorting, sorting simple lookups before ones
     which require additional hits to the reddit api"""
@@ -238,6 +254,7 @@ def matchrules(thing, rules, is_modqueue=False):
                 else:
                     fieldvalue = unicode(getattr(vg, key)(thing))
             except AttributeError:
+                # Ignore conditions we don't understand
                 continue
             except TypeError:
                 ruleMatches = False
@@ -254,6 +271,7 @@ def matchrules(thing, rules, is_modqueue=False):
                 matches[key] = m.groupdict()
         if ruleMatches:
             try:
+                decorate(thing)
                 applyrule(thing, rule, matches)
                 seen(thing.name)
                 if is_modqueue:
@@ -320,10 +338,11 @@ def main():
 
     while True:
         logging.debug("Loop start")
+        loopstart = time.time()
         rh.update()
 
         try:
-            modqueue_items = sub.get_modqueue(limit=100)
+            modqueue_items = sub.get_mod_queue(limit=100)
         except Exception, e:
             modqueue_items = []
 
@@ -331,11 +350,11 @@ def main():
         for modqueue_item in modqueue_items:
             num += 1
             matchrules(modqueue_item, rh.rules, is_modqueue=True)
-        logging.debug("Checked %d modqueue items" % num)
+        logging.info("Checked %d modqueue items" % num)
 
         try:
             if comments_ph == None:
-                comments = sub.get_comments(limit=10)
+                comments = sub.get_comments(limit=100)
             else:
                 comments = sub.get_comments(place_holder=comments_ph,
                         limit=500)
@@ -350,13 +369,13 @@ def main():
                 comments_ph = comment.id
             matchrules(comment, rh.rules)
             logging.debug("Checking %s done" % comment.name)
-        logging.debug("Checked %d comments" % num)
+        logging.info("Checked %d comments" % num)
 
         try:
             if submissions_ph == None:
-                submissions = sub.get_new_by_date(limit=10)
+                submissions = sub.get_new(limit=100)
             else:
-                submissions = sub.get_new_by_date(place_holder=submissions_ph,
+                submissions = sub.get_new(place_holder=submissions_ph,
                         limit=100)
         except Exception, e:
             submissions = []
@@ -367,10 +386,12 @@ def main():
             if submissions_ph == None or num == 1:
                 submissions_ph = submission.id
             matchrules(submission, rh.rules)
-        logging.debug("Checked %d submissions" % num)
+        logging.info("Checked %d submissions" % num)
 
-        logging.debug("Loop end")
-        time.sleep(30)
+        loopend = time.time()
+        sleepfor = max(0.0, 30.0 - (loopend - loopstart))
+        logging.info("Loop end. Sleeping %f s" % sleepfor)
+        time.sleep(sleepfor)
 
 
 if __name__ == "__main__":

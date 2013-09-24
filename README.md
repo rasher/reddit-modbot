@@ -78,7 +78,7 @@ matches. Possible actions are:
 <tr><td>remove</td><td>remove the item (but don't mark as spam)</td></tr>
 <tr><td>approve</td><td>approve the item</td></tr>
 <tr><td>respond</td><td>post a distinguished comment, using the body of the rule as a template, using new style python string formatting with the objects "rule", "thing" and "matches"available. See below for an example.</td></tr>
-<tr><td>messagemods</td><td>message the mods of the subreddit, using the rule body.</td></tr>
+<tr><td>messagemods:target</td><td>message the mods of the subreddit "target", using the rule body.</td></tr>
 <tr><td>beep</td><td>write a BEL character to the terminal</td></tr>
 <tr><td>messageauthor</td><td>message the author, using the rule body as template.</td></tr>
 <tr><td>report</td><td>report the item</td></tr>
