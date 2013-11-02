@@ -339,7 +339,6 @@ def main():
     while True:
         logging.debug("Loop start")
         loopstart = time.time()
-        rh.update()
 
         try:
             modqueue_items = sub.get_mod_queue(limit=100)
