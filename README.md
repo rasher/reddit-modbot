@@ -20,7 +20,7 @@ Reddit modbot is a relatively lightweight script for automating reddit moderatin
 # Getting started
 
 Requirements (both available in pypi):
- * [inotifyx](http://www.alittletooquiet.net/software/inotifyx/)
+ * [watchdog](http://pythonhosted.org/watchdog/)
  * [PRAW](https://github.com/praw-dev/praw)
 
 Run it like this:

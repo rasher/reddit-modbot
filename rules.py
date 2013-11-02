@@ -32,8 +32,30 @@ from fnmatch import fnmatch
 from glob import glob
 from os import path
 import codecs
-import inotifyx
 import logging
+from watchdog.events import PatternMatchingEventHandler, LoggingEventHandler
+from watchdog.observers import Observer
+
+
+class RuleChangeHandler(PatternMatchingEventHandler):
+
+    def __init__(self, rh, pattern):
+        super(RuleChangeHandler, self).__init__(patterns=[pattern],
+                                                ignore_directories=True)
+        self.rh = rh
+        self.pattern = pattern
+
+    def on_deleted(self, event):
+        self.rh._remove_rule(event.src_path)
+
+    def on_modified(self, event):
+        self.rh._read_rule(event.src_path)
+
+    def on_moved(self, event):
+        if fnmatch(event.src_path, self.pattern):
+            self.rh._remove_rule(event.src_path)
+        if fnmatch(event.dest_path, self.pattern):
+            self.rh._read_rule(event.dest_path)
 
 
 class RuleHandler(object):
@@ -41,22 +63,25 @@ class RuleHandler(object):
     _rules_list = []
     _addedfiles = []
     _removedfiles = []
-    _wd = None
-    fnmask = ''
-
-    READ_RULE = inotifyx.IN_CREATE | inotifyx.IN_MODIFY | inotifyx.IN_MOVED_TO
-    REMOVE_RULE = inotifyx.IN_DELETE | inotifyx.IN_MOVED_FROM
+    _observer = None
 
     def __init__(self, directory, fnmask='*.rule'):
-        self._fd = inotifyx.init()
+        self._event_handler = RuleChangeHandler(self, fnmask)
         self.directory = directory
         self.fnmask = fnmask
         self._read_all()
 
+    def __del__(self):
+        if self._observer is not None:
+            self._observer.stop()
+            self._observer.join()
+
     @property
     def rules(self):
-        """Get the current list of rules, ordered by filename"""
-        return self._rules_list
+        """Get the current list of rules, ordered by filename.
+
+        Returns a copy of the list - not the list itself, which is private"""
+        return list(self._rules_list)
 
     @property
     def directory(self):
@@ -65,25 +90,28 @@ class RuleHandler(object):
 
     @directory.setter
     def directory(self, value):
-        if self._wd != None:
+        if self._observer is not None:
             del(self.directory)
         self._directory = value
-        self._wd = inotifyx.add_watch(self._fd, self._directory, self.READ_RULE
-                | self.REMOVE_RULE)
+        self._observer = Observer()
+        self._observer.schedule(self._event_handler, self._directory,
+                                recursive=False)
+        self._observer.start()
 
     @directory.deleter
     def directory(self):
         del(self._directory)
-        inotifyx.rm_watch(self._fd, self._wd)
-        self._wd = None
         self._rules = []
+        self._observer.stop()
+        self._observer.join()
+        del(self._observer)
 
     def _update_rules_list(self):
         keys = self._rules.keys()
         self._rules_list = []
         for key in keys:
             self._rules_list.append(self._rules[key])
-        self._rules_list.sort(lambda a,b: cmp(a['_filename'], b['_filename']))
+        self._rules_list.sort(lambda a, b: cmp(a['_filename'], b['_filename']))
 
     def _read_all(self):
         for filename in glob(path.join(self.directory, self.fnmask)):
@@ -91,55 +119,38 @@ class RuleHandler(object):
         self._update_rules_list()
 
     def _remove_rule(self, filename):
-        logging.info("Remove %s" % filename)
+        filename = path.realpath(filename)
+        logging.info("Remove %s" % path.relpath(filename))
         if filename in self._rules:
             del(self._rules[filename])
+            self._update_rules_list()
 
     def _read_rule(self, filename):
-        logging.info("Read %s" % filename)
-        rule = {u'_filename': filename}
-        isData = False
-        for line in codecs.open(filename, 'r', 'utf-8'):
-            if isData:
-                if u'content' not in rule:
-                    rule[u'content'] = u""
-                rule[u'content'] += line
-            elif line.strip() == '':
-                isData = True
-            elif line.startswith("#"):
-                continue
-            else:
-                key, value = line.split(":", 1)
-                rule[key.lower().strip()] = value.strip()
-        if u'content' in rule:
-            rule[u'content'] = rule[u'content'].strip()
-        self._rules[filename] = rule
-        return rule
-
-    def _handleevent(self, ev):
-        if not fnmatch(ev.name, self.fnmask):
-            return
-        if not ev.name:
-            return
-        logging.debug("{0.name} - {1}".format(ev, ev.get_mask_description()))
-        if ev.mask & self.READ_RULE and ev.name not in self._addedfiles:
-            try:
-                self._read_rule(path.join(self.directory, ev.name))
-                self._addedfiles.append(ev.name)
-            except Exception, e:
-                pass
-        elif ev.mask & self.REMOVE_RULE and ev.name not in self._removedfiles:
-            self._remove_rule(path.join(self.directory, ev.name))
-            self._removedfiles.append(ev.name)
-
-    def update(self):
-        self._addedfiles = []
-        self._removedfiles = []
-        for event in inotifyx.get_events(self._fd, 0):
-            self._handleevent(event)
-
-        if len(self._addedfiles) + len(self._removedfiles) > 0:
+        filename = path.realpath(filename)
+        logging.info("Read %s" % path.relpath(filename))
+        try:
+            rule = {u'_filename': filename}
+            isData = False
+            for line in codecs.open(filename, 'r', 'utf-8'):
+                if isData:
+                    if u'content' not in rule:
+                        rule[u'content'] = u""
+                    rule[u'content'] += line
+                elif line.strip() == '':
+                    isData = True
+                elif line.startswith("#"):
+                    continue
+                else:
+                    key, value = line.split(":", 1)
+                    rule[key.lower().strip()] = value.strip()
+            if u'content' in rule:
+                rule[u'content'] = rule[u'content'].strip()
+            self._rules[filename] = rule
             self._update_rules_list()
+            return rule
+        except Exception, e:
+            logging.warning("Failed reading {0}: {1}".format(
+                path.relpath(filename), e))
 
 
 if __name__ == "__main__":
@@ -147,7 +158,10 @@ if __name__ == "__main__":
     import sys
     import time
     logging.basicConfig(level=logging.DEBUG,
-            format="[%(asctime)s] %(levelname)-7s %(message)s")
+                        format="[%(asctime)s] %(levelname)-7s %(message)s")
     rh = RuleHandler(sys.argv[1])
-    rh.update()
-    pprint(rh.rules)
+    while True:
+        logging.info("Currently %d rules" % len(rh.rules))
+        for rule in rh.rules:
+            logging.debug(rule)
+        time.sleep(10)
